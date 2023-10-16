@@ -17,16 +17,43 @@ router.post('/register', async(req, res, next) => {
         message: `nice to have you, ${result.username}`,
     })
     }catch (err) {
-        next(err)
+       res.status(404).json({
+        message:'This person is already registered',
+        
+       })
     }
 
 })
 router.post('/login', async(req, res, next) => {
-    res.json({ message: 'login working'})
+    try {
+    const { username, password } = req.body
+    const [user]= await User.findBy({ username })
+    if (user && bcrypt.compareSync(password, user.password)) {
+        req.session.user = user
+        res.json({message: `welcome back, ${user.username}`})
+    } else {
+        next({ status: 401, message: 'bad credentials'})
+    }
+    }catch (err) {
+        next(err)
+    }
 
 })
 router.get('/logout', async(req, res, next) => {
-    res.json({ message: 'logout working'})
+   if(req.session.user) {
+    const { username } = req.session.user
+    req.session.destroy(err => {
+        if(err) {
+            res.json({ message: `you can never leave, ${username}`})
+        }else{
+            // if you want the cookie to be delete from the server.
+            // res.set('Set-Cookie', 'monkey=; SameSite=Strict; Path=/; Expires=Thu, =1 Jan 1070 00:00:00')
+            res.json({ message: `Goodbye ${username}`})
+        }
+    })
+   }else {
+    res.json({ message: 'sorry, have we met?'})
+   }
 
 })
 
